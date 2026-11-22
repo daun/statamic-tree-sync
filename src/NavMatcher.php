@@ -8,24 +8,17 @@ use stdClass;
 /**
  * Rearranges a target nav tree to match a source nav tree.
  *
- * Branches are matched by their branch id, which is shared across sites once a tree was copied
- * from another site. Unlike entries, nav branches only exist in the tree, so the target follows
- * the source completely:
- *
- * - Shared branches are placed exactly like in the source.
- * - Source-only branches are created in the target.
- * - Branches removed from the source are removed from the target; their remaining children take their place.
- * - Target-only branches keep their parent and stay right after the nearest preceding
- *   sibling that is still a sibling, or become the first child if there is none.
+ * Branches are matched by id, which sites share once a tree was copied. Source-only branches are
+ * created, removed ones are removed, and target-only ones stay after their nearest preceding sibling.
  */
 class NavMatcher
 {
     /**
-     * @param  array<int, array<string, mixed>>  $source  Branches of the source tree
-     * @param  array<int, array<string, mixed>>  $target  Branches of the target tree
+     * @param  array<int, array<string, mixed>>  $source
+     * @param  array<int, array<string, mixed>>  $target
      * @param  string[]  $removed  Ids of the branches removed from the source
-     * @param  Closure(array<string, mixed>, ?array<string, mixed>): array<string, mixed>  $map  Source branch, existing target branch => target branch, all without children
-     * @return array<int, array<string, mixed>> Rearranged branches of the target tree
+     * @param  Closure(array<string, mixed>, ?array<string, mixed>): array<string, mixed>  $map  (source branch, target branch) => new target branch, without children
+     * @return array<int, array<string, mixed>>
      */
     public static function match(array $source, array $target, array $removed, Closure $map): array
     {
@@ -36,7 +29,6 @@ class NavMatcher
         $root = static::node([]);
         $nodes = [];
 
-        // Source branches, in the shape of the source tree
         $build = function (array $branches, stdClass $parent) use (&$build, &$nodes, $info, $map): void {
             foreach ($branches as $branch) {
                 $id = isset($branch['id']) ? (string) $branch['id'] : null;
@@ -55,8 +47,7 @@ class NavMatcher
         };
         $build($source, $root);
 
-        // Target-only branches, anchored to their parent and preceding siblings. Children of
-        // removed branches take their place, so they anchor to its preceding siblings as well.
+        // Children of a removed branch take its place: same parent and anchors
         $removedParents = [];
         foreach ($info as $key => $item) {
             if (isset($nodes[$key])) {

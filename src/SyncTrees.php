@@ -29,7 +29,6 @@ class SyncTrees extends Subscriber
 
     /**
      * A tree was rearranged: rearrange the trees of the other sites to match.
-     * If it was only saved to add new localizations, place them like their origin instead.
      */
     public function handleTreeSaved(CollectionTreeSaved $event): void
     {
@@ -51,7 +50,7 @@ class SyncTrees extends Subscriber
 
     /**
      * A localization was created: place it in its tree like its origin.
-     * Covers localizations that were created without being added to the tree.
+     * Covers localizations created without being added to the tree.
      */
     public function handleEntryCreated(EntryCreated $event): void
     {
@@ -70,7 +69,6 @@ class SyncTrees extends Subscriber
 
     /**
      * A nav tree was saved: mirror its changes in the trees of the other sites.
-     * If it was just created empty, copy it from another site instead.
      */
     public function handleNavTreeSaved(NavTreeSaved $event): void
     {
@@ -98,7 +96,7 @@ class SyncTrees extends Subscriber
     }
 
     /**
-     * The tree that triggered the sync is already saved; a failed sync shouldn't fail the save.
+     * Report sync failures instead of throwing: the triggering tree is already saved.
      */
     protected function safely(callable $callback): void
     {

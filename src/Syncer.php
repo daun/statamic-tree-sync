@@ -27,8 +27,8 @@ class Syncer
     /**
      * Rearrange the trees of all other sites to match the given tree.
      *
-     * @param  array<int, array<string, mixed>>|null  $branches  Explicit source branches, without tree validation
-     * @return string[] Handles of the sites whose tree changed
+     * @param  array<int, array<string, mixed>>|null  $branches  Source branches to use instead of the validated tree
+     * @return string[] Handles of the changed sites
      */
     public function push(CollectionTree $source, bool $save = true, ?array $branches = null): array
     {
@@ -60,7 +60,7 @@ class Syncer
     /**
      * Rearrange all trees of a collection to match the tree of one site, the default site by default.
      *
-     * @return string[] Handles of the sites whose tree changed
+     * @return string[] Handles of the changed sites
      */
     public function sync(Collection $collection, ?string $site = null, bool $save = true): array
     {
@@ -75,9 +75,8 @@ class Syncer
     }
 
     /**
-     * If a tree was saved only to add new localizations, return the site their position should be
-     * taken from: the site of their origin. A tree saved this way has them appended to the end of
-     * their parent, which is not an arrangement worth pushing to the other sites.
+     * If a tree was saved only to add new localizations, return the site of their origin.
+     * Such a save appends them to their parent, which isn't worth pushing to other sites.
      */
     public function localizationSource(CollectionTree $tree): ?string
     {
@@ -153,8 +152,7 @@ class Syncer
      */
     protected function origins(Collection $collection): array
     {
-        // The Eloquent driver hydrates every entry to pluck by key: read the two columns in chunks instead.
-        // The Stache plucks from its indexes without loading any entries.
+        // The Eloquent driver hydrates every entry to pluck by key; the Stache plucks from its indexes
         $pairs = Entry::query() instanceof EloquentEntryQueryBuilder
             ? app('statamic.eloquent.entries.model')::query()
                 ->where('collection', $collection->handle())

@@ -11,8 +11,7 @@ use Statamic\Facades\Nav;
 /**
  * Global switch for the automatic syncing of trees.
  *
- * The state is a scoped container instance: it resets with every request and queued job,
- * so a switch left off in a long-running Octane or queue worker doesn't leak into the next one.
+ * Scoped instance, so a switch left off doesn't leak into the next Octane request or queued job.
  */
 class TreeSync
 {
@@ -36,8 +35,7 @@ class TreeSync
     }
 
     /**
-     * Whether the subscriber should react to events right now:
-     * enabled, and not reacting to the tree saves of an ongoing sync.
+     * Whether the subscriber should react to events right now.
      */
     public static function listening(): bool
     {
@@ -50,7 +48,7 @@ class TreeSync
      * Sync all configured collections and navigations from the default site.
      * Runs even while automatic syncing is disabled.
      *
-     * @return array<string, string[]> Handles of the changed sites, keyed by `collection:handle` or `nav:handle`
+     * @return array<string, string[]> Changed sites, keyed by `collection:handle` or `nav:handle`
      */
     public static function sync(): array
     {
@@ -95,8 +93,7 @@ class TreeSync
     }
 
     /**
-     * Run a callback while marking a sync as in progress, so the
-     * tree saves it causes don't trigger another round of syncing.
+     * Run a callback as part of a sync, so the tree saves it causes don't trigger another one.
      *
      * @template T
      *

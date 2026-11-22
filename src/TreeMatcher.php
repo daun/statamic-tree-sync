@@ -7,27 +7,21 @@ use stdClass;
 /**
  * Rearranges a target tree to match the shape of a source tree.
  *
- * Branches are matched by a shared key (the id of the root origin entry), so a localization
- * takes the position its counterpart has in the source tree. The target never loses entries:
- *
- * - Shared entries are placed exactly like in the source.
- * - Source-only entries are skipped; their shared descendants move up to take their place.
- * - Target-only entries keep their parent and stay right after the nearest preceding
- *   sibling that is still a sibling, or become the first child if there is none.
+ * Entries are matched by their root origin. The target never loses entries: source-only ones are
+ * skipped, and target-only ones stay after their nearest preceding sibling.
  */
 class TreeMatcher
 {
     /**
-     * @param  array<int, array<string, mixed>>  $source  Branches of the source tree
-     * @param  array<int, array<string, mixed>>  $target  Branches of the target tree
+     * @param  array<int, array<string, mixed>>  $source
+     * @param  array<int, array<string, mixed>>  $target
      * @param  array<string, string>  $keys  Entry id => shared key; unmapped ids are their own key
-     * @return array<int, array<string, mixed>> Rearranged branches of the target tree
+     * @return array<int, array<string, mixed>>
      */
     public static function match(array $source, array $target, array $keys): array
     {
         $key = fn (string $id): string => $keys[$id] ?? $id;
 
-        // Index the target tree: id by key, and parent + preceding siblings + extra data by id, in tree order
         $targetIds = [];
         $targetInfo = [];
         static::index($target, null, $targetInfo);
@@ -38,7 +32,6 @@ class TreeMatcher
         $root = static::node(null);
         $nodes = [];
 
-        // Shared entries, in the shape of the source tree
         $build = function (array $branches, stdClass $parent) use (&$build, $key, $targetIds, $targetInfo, &$nodes): void {
             foreach ($branches as $branch) {
                 $id = $targetIds[$key((string) $branch['entry'])] ?? null;
@@ -53,7 +46,6 @@ class TreeMatcher
         };
         $build($source, $root);
 
-        // Target-only entries, anchored to their parent and preceding siblings
         foreach ($targetInfo as $id => $info) {
             if (isset($nodes[$id])) {
                 continue;

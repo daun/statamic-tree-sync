@@ -30,9 +30,8 @@ class NavSyncer
     /**
      * Rearrange the trees of all other sites to match the given tree.
      *
-     * @param  array<int, array<string, mixed>>  $original  The given tree before it was saved, to detect removed
-     *                                                      branches and changes to localized fields that were in sync
-     * @return string[] Handles of the sites whose tree changed
+     * @param  array<int, array<string, mixed>>  $original  The tree before saving, to detect removed branches and edited fields
+     * @return string[] Handles of the changed sites
      */
     public function push(NavTree $source, array $original = [], bool $save = true): array
     {
@@ -64,7 +63,7 @@ class NavSyncer
     /**
      * Rearrange all trees of a nav to match the tree of one site, the default site by default.
      *
-     * @return string[] Handles of the sites whose tree changed
+     * @return string[] Handles of the changed sites
      */
     public function sync(Nav $nav, ?string $site = null, bool $save = true): array
     {
@@ -79,8 +78,7 @@ class NavSyncer
     }
 
     /**
-     * If a tree was just created empty, e.g. by adding a site to the nav, return the site
-     * to copy it from: the default site, or the first other site with a filled tree.
+     * The site to copy a newly created, empty tree from, e.g. after adding a site to the nav.
      */
     public function seedSource(NavTree $tree): ?string
     {
@@ -146,13 +144,13 @@ class NavSyncer
     }
 
     /**
-     * An existing branch of the target site: takes the synced fields, and the localized
-     * fields that still had the same value as the source branch before it was saved.
+     * An existing branch of the target site: takes the synced fields, and the localized fields
+     * the target hadn't changed from the source.
      *
      * @param  array<string, mixed>  $from
      * @param  array<string, mixed>  $to
-     * @param  array<string, mixed>  $before  The source branch before it was saved
-     * @param  string[]  $dataFields  Synced keys of the branch data
+     * @param  array<string, mixed>  $before  The source branch before saving
+     * @param  string[]  $dataFields
      * @return array<string, mixed>
      */
     protected function update(array $from, array $to, array $before, string $site, array $dataFields): array
@@ -191,8 +189,8 @@ class NavSyncer
     }
 
     /**
-     * Keys whose value in the target is still the source value from before the save. Empty values
-     * don't count: an empty title means the title of the entry, which differs between sites.
+     * Keys whose value in the target is still the source value from before the save.
+     * Empty values don't count: an empty title means the entry title, which differs between sites.
      *
      * @param  array<string, mixed>  $before
      * @param  array<string, mixed>  $to
@@ -227,8 +225,8 @@ class NavSyncer
     }
 
     /**
-     * Keys of the branch data that are synced like the non-localizable fields of entries. Title and
-     * url are always localized: the CP adds them to the blueprint as non-localizable fields on save.
+     * Keys of the branch data that are synced like the non-localizable fields of entries.
+     * Title and url stay localized: the CP adds them to the blueprint as non-localizable fields.
      *
      * @return string[]
      */
@@ -263,7 +261,7 @@ class NavSyncer
         }
 
         if (! $save) {
-            // Dry runs need ids too, without mutating the repository's cached tree.
+            // Don't mutate the repository's cached tree on dry runs
             return (clone $tree)->tree(BranchIds::ensure($tree->tree()));
         }
 
