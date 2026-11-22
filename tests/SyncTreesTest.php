@@ -2,6 +2,7 @@
 
 namespace Daun\StatamicTreeSync\Tests;
 
+use Daun\StatamicTreeSync\Commands\SyncTreesCommand;
 use Daun\StatamicTreeSync\Syncer;
 use Daun\StatamicTreeSync\TreeSync;
 use Illuminate\Support\Facades\Event;
@@ -10,6 +11,7 @@ use Statamic\Events\CollectionTreeSaved;
 use Statamic\Facades\Blink;
 use Statamic\Facades\Collection;
 use Statamic\Facades\Entry;
+use Statamic\Facades\Nav;
 use Statamic\Facades\Stache;
 
 class SyncTreesTest extends TestCase
@@ -46,9 +48,9 @@ class SyncTreesTest extends TestCase
             $this->assertTree('en', 'en-home, en-b(en-d, en-a)');
         } else {
             $this->assertTree('en', 'en-home, en-a, en-b(en-d)');
-            $this->artisan('statamic:tree-sync')->assertSuccessful();
+            $this->artisan('statamic:trees:sync:collections')->assertSuccessful();
             $this->assertTree('en', 'en-home, en-a, en-b(en-d)');
-            $this->artisan('statamic:tree-sync', ['handles' => ['pages']])->assertFailed();
+            $this->artisan('statamic:trees:sync:collections', ['handles' => ['pages']])->assertFailed();
             $this->assertTree('en', 'en-home, en-a, en-b(en-d)');
         }
     }
@@ -62,6 +64,67 @@ class SyncTreesTest extends TestCase
             'another handle' => [['other'], false],
             'not a glob' => [['p*'], false],
         ];
+    }
+
+    #[DataProvider('scopedCommands')]
+    public function test_commands_distinguish_overlapping_handles(string $command, array $options, bool $collections, bool $navigations): void
+    {
+        config(['statamic-tree-sync.navigations' => ['pages']]);
+        Nav::make('pages')->title('Pages')->save();
+        foreach (['de', 'en'] as $site) {
+            Nav::findByHandle('pages')->makeTree($site)->saveQuietly();
+        }
+        $source = [['id' => 'a'], ['id' => 'b']];
+        $target = array_reverse($source);
+        Nav::findByHandle('pages')->in('de')->tree($source)->saveQuietly();
+        Nav::findByHandle('pages')->in('en')->tree($target)->saveQuietly();
+        $this->setTree('de', 'home, b(c, d, a)');
+
+        $this->artisan($command, $options)->assertSuccessful();
+
+        $this->assertTree('en', $collections ? 'en-home, en-b(en-d, en-a)' : 'en-home, en-a, en-b(en-d)');
+        $this->assertSame($navigations ? $source : $target, Nav::findByHandle('pages')->in('en')->tree());
+    }
+
+    public static function scopedCommands(): array
+    {
+        return [
+            'all' => ['statamic:trees:sync', [], true, true],
+            'all preview' => ['statamic:trees:sync', ['--dry-run' => true], false, false],
+            'collections' => ['statamic:trees:sync:collections', [], true, false],
+            'collection handle' => ['statamic:trees:sync:collections', ['handles' => ['pages']], true, false],
+            'navigations' => ['statamic:trees:sync:navigations', [], false, true],
+            'nav handle' => ['statamic:trees:sync:navigations', ['handles' => ['pages']], false, true],
+        ];
+    }
+
+    public function test_the_catch_all_accepts_only_dry_run(): void
+    {
+        $command = new SyncTreesCommand;
+
+        $this->assertSame([], $command->getDefinition()->getArguments());
+        $this->assertSame(['dry-run'], array_keys($command->getDefinition()->getOptions()));
+    }
+
+    public function test_the_catch_all_respects_configuration(): void
+    {
+        config(['statamic-tree-sync.collections' => []]);
+        $this->setTree('de', 'home, b(c, d, a)');
+
+        $this->artisan('statamic:trees:sync')->assertSuccessful();
+
+        $this->assertTree('en', 'en-home, en-a, en-b(en-d)');
+    }
+
+    public function test_unknown_collection_handles_fail_before_syncing(): void
+    {
+        $this->setTree('de', 'home, b(c, d, a)');
+
+        $this->artisan('statamic:trees:sync:collections', ['handles' => ['pages', 'missing']])
+            ->expectsOutputToContain('Collection [missing] not found')
+            ->assertFailed();
+
+        $this->assertTree('en', 'en-home, en-a, en-b(en-d)');
     }
 
     public function test_saving_a_tree_rearranges_the_trees_of_the_other_sites(): void
@@ -203,14 +266,14 @@ class SyncTreesTest extends TestCase
     {
         $this->setTree('de', 'home, b(d, c), a');
 
-        $this->artisan('statamic:tree-sync')->expectsOutputToContain('changed: en, fr')->assertSuccessful();
+        $this->artisan('statamic:trees:sync:collections')->expectsOutputToContain('changed: en, fr')->assertSuccessful();
 
         $saved = [];
         Event::listen(CollectionTreeSaved::class, function ($event) use (&$saved) {
             $saved[] = $event->tree->locale();
         });
 
-        $this->artisan('statamic:tree-sync')->expectsOutputToContain('in sync')->assertSuccessful();
+        $this->artisan('statamic:trees:sync:collections')->expectsOutputToContain('in sync')->assertSuccessful();
 
         $this->assertSame([], $saved);
         $this->assertTree('en', 'en-home, en-b(en-d), en-a');
@@ -247,7 +310,7 @@ class SyncTreesTest extends TestCase
         $this->setTree('de', 'home, b(d, c), a');
         Stache::clear();
 
-        $this->artisan('statamic:tree-sync')->assertSuccessful();
+        $this->artisan('statamic:trees:sync:collections')->assertSuccessful();
 
         $this->assertTree('en', 'en-home, en-b(en-d), en-a');
     }
@@ -279,7 +342,7 @@ class SyncTreesTest extends TestCase
     {
         $this->setTree('de', 'home, b(d, c), a');
 
-        $this->artisan('statamic:tree-sync', ['--from' => 'es'])
+        $this->artisan('statamic:trees:sync:collections', ['--from' => 'es'])
             ->expectsOutputToContain('Site [es] not found')
             ->assertFailed();
 
@@ -291,7 +354,7 @@ class SyncTreesTest extends TestCase
         Collection::make('news')->sites(['de', 'en'])->structureContents(['max_depth' => 1])->save();
         $this->setTree('fr', 'fr-home, fr-b(fr-d, fr-c), fr-a');
 
-        $this->artisan('statamic:tree-sync', ['--from' => 'fr'])
+        $this->artisan('statamic:trees:sync:collections', ['--from' => 'fr'])
             ->expectsOutputToContain('skipped: not in site fr')
             ->assertSuccessful();
 
@@ -302,10 +365,10 @@ class SyncTreesTest extends TestCase
     {
         $this->setTree('de', 'home, b(d, c), a');
 
-        $this->artisan('statamic:tree-sync', ['--dry-run' => true])->assertSuccessful();
+        $this->artisan('statamic:trees:sync:collections', ['--dry-run' => true])->assertSuccessful();
         $this->assertTree('en', 'en-home, en-a, en-b(en-d)');
 
-        $this->artisan('statamic:tree-sync')->assertSuccessful();
+        $this->artisan('statamic:trees:sync:collections')->assertSuccessful();
         $this->assertTree('en', 'en-home, en-b(en-d), en-a');
         $this->assertTree('fr', 'fr-home, fr-b(fr-d, fr-c), fr-a');
     }
@@ -314,7 +377,7 @@ class SyncTreesTest extends TestCase
     {
         $this->setTree('fr', 'fr-home, fr-b(fr-d, fr-c), fr-a');
 
-        $this->artisan('statamic:tree-sync', ['handles' => ['pages'], '--from' => 'fr'])->assertSuccessful();
+        $this->artisan('statamic:trees:sync:collections', ['handles' => ['pages'], '--from' => 'fr'])->assertSuccessful();
 
         $this->assertTree('de', 'home, b(d, c), a');
         $this->assertTree('en', 'en-home, en-b(en-d), en-a');

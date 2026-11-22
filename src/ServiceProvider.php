@@ -2,6 +2,8 @@
 
 namespace Daun\StatamicTreeSync;
 
+use Daun\StatamicTreeSync\Commands\SyncCollectionsCommand;
+use Daun\StatamicTreeSync\Commands\SyncNavigationsCommand;
 use Daun\StatamicTreeSync\Commands\SyncTreesCommand;
 use Statamic\Providers\AddonServiceProvider;
 use Statamic\Statamic;
@@ -14,6 +16,8 @@ class ServiceProvider extends AddonServiceProvider
 
     protected $commands = [
         SyncTreesCommand::class,
+        SyncCollectionsCommand::class,
+        SyncNavigationsCommand::class,
     ];
 
     public function bootAddon(): void

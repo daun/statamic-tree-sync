@@ -51,9 +51,9 @@ class SyncNavsTest extends TestCase
             $this->assertTree('en', '2:en-b(4:en-b(3:en-b)), 5, 1:en-a');
         } else {
             $this->assertTree('en', '1:en-a, 2:en-b(3:en-b, 4:en-b), 5');
-            $this->artisan('statamic:tree-sync')->assertSuccessful();
+            $this->artisan('statamic:trees:sync:navigations')->assertSuccessful();
             $this->assertTree('en', '1:en-a, 2:en-b(3:en-b, 4:en-b), 5');
-            $this->artisan('statamic:tree-sync', ['handles' => ['main']])->assertFailed();
+            $this->artisan('statamic:trees:sync:navigations', ['handles' => ['main']])->assertFailed();
             $this->assertTree('en', '1:en-a, 2:en-b(3:en-b, 4:en-b), 5');
         }
     }
@@ -67,6 +67,26 @@ class SyncNavsTest extends TestCase
             'another handle' => [['other'], false],
             'not a glob' => [['m*'], false],
         ];
+    }
+
+    public function test_the_command_can_sync_from_another_site(): void
+    {
+        $this->setTree('en', '5, 1:en-a, 2:en-b(3:en-b, 4:en-b)');
+
+        $this->artisan('statamic:trees:sync:navigations', ['handles' => ['main'], '--from' => 'en'])->assertSuccessful();
+
+        $this->assertTree('de', '5, 1:a, 2:b(3:b, 4:b)');
+    }
+
+    public function test_unknown_nav_handles_fail_before_syncing(): void
+    {
+        $this->setTree('de', '5, 1:a, 2:b(3:b, 4:b)');
+
+        $this->artisan('statamic:trees:sync:navigations', ['handles' => ['main', 'missing']])
+            ->expectsOutputToContain('Navigation [missing] not found')
+            ->assertFailed();
+
+        $this->assertTree('en', '1:en-a, 2:en-b(3:en-b, 4:en-b), 5');
     }
 
     public function test_saving_a_tree_rearranges_the_trees_of_the_other_sites(): void
@@ -226,7 +246,7 @@ class SyncNavsTest extends TestCase
         $this->setTree('de', [['id' => '1', 'entry' => 'a', 'title' => 'Neuer Titel']]);
         $this->setTree('en', [['id' => '1', 'entry' => 'en-a', 'title' => 'Titel']]);
 
-        $this->artisan('statamic:tree-sync', ['handles' => ['main']])->assertSuccessful();
+        $this->artisan('statamic:trees:sync:navigations', ['handles' => ['main']])->assertSuccessful();
 
         $this->assertSame([['id' => '1', 'entry' => 'en-a', 'title' => 'Titel']], $this->tree('en')->tree());
     }
@@ -244,10 +264,10 @@ class SyncNavsTest extends TestCase
     {
         $this->setTree('de', '5, 1:a, 2:b(3:b, 4:b), 6:c');
 
-        $this->artisan('statamic:tree-sync', ['handles' => ['main'], '--dry-run' => true])->assertSuccessful();
+        $this->artisan('statamic:trees:sync:navigations', ['handles' => ['main'], '--dry-run' => true])->assertSuccessful();
         $this->assertTree('en', '1:en-a, 2:en-b(3:en-b, 4:en-b), 5');
 
-        $this->artisan('statamic:tree-sync')->assertSuccessful();
+        $this->artisan('statamic:trees:sync:navigations')->assertSuccessful();
         $this->assertTree('en', '5, 1:en-a, 2:en-b(3:en-b, 4:en-b), 6:c');
     }
 
@@ -264,7 +284,7 @@ class SyncNavsTest extends TestCase
 
         $this->assertTrue(app(NavSyncer::class)->pull($this->tree('en'), 'de', save: false));
 
-        $this->artisan('statamic:tree-sync', ['handles' => ['main'], '--dry-run' => true])
+        $this->artisan('statamic:trees:sync:navigations', ['handles' => ['main'], '--dry-run' => true])
             ->expectsOutputToContain('would change: en')
             ->assertSuccessful();
 
@@ -273,7 +293,7 @@ class SyncNavsTest extends TestCase
         $this->assertSame($target, $this->tree('en')->tree());
         $this->assertSame([], $saved);
 
-        $this->artisan('statamic:tree-sync', ['handles' => ['main']])
+        $this->artisan('statamic:trees:sync:navigations', ['handles' => ['main']])
             ->expectsOutputToContain('changed: en')
             ->assertSuccessful();
 
