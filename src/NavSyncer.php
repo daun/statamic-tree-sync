@@ -3,6 +3,7 @@
 namespace Daun\StatamicTreeSync;
 
 use Facades\Statamic\Structures\BranchIds;
+use Statamic\Contracts\Entries\Entry as EntryContract;
 use Statamic\Contracts\Structures\Nav;
 use Statamic\Contracts\Structures\NavTree;
 use Statamic\Facades\Entry;
@@ -11,7 +12,7 @@ use Statamic\Fields\Field;
 
 class NavSyncer
 {
-    /** @var array<string, ?\Statamic\Contracts\Entries\Entry> */
+    /** @var array<string, ?EntryContract> */
     protected array $entries = [];
 
     /**
@@ -22,7 +23,8 @@ class NavSyncer
         $handles = config('statamic-tree-sync.navigations', []);
 
         return $nav
-            && (in_array('*', $handles, true) || in_array($nav->handle(), $handles, true)) && $nav->trees()->count() > 1;
+            && (in_array('*', $handles, true) || in_array($nav->handle(), $handles, true))
+            && $nav->trees()->count() > 1;
     }
 
     /**
@@ -40,7 +42,6 @@ class NavSyncer
             ->reject(fn (NavTree $tree, string $site) => $site === $source->locale())
             ->filter(fn (NavTree $tree) => $this->apply($source, $tree, $original, $save))
             ->keys()
-            ->values()
             ->all();
     }
 
@@ -158,7 +159,7 @@ class NavSyncer
     {
         if (! isset($from['entry'])) {
             unset($to['entry']);
-        } elseif (! isset($to['entry']) || ! $this->links((string) $to['entry'], (string) $from['entry'], $site)) {
+        } elseif (! isset($to['entry']) || (string) $to['entry'] !== $this->localize((string) $from['entry'], $site)) {
             $to['entry'] = $this->localize((string) $from['entry'], $site);
         }
 
@@ -236,7 +237,6 @@ class NavSyncer
         return $nav->blueprint()->fields()->all()
             ->reject(fn (Field $field) => $field->isLocalizable() || in_array($field->handle(), ['title', 'url']))
             ->keys()
-            ->values()
             ->all();
     }
 
@@ -248,15 +248,7 @@ class NavSyncer
         return $this->entry($id)?->in($site)?->id() ?? $id;
     }
 
-    /**
-     * Whether a target branch already links to the target site's version of the source entry.
-     */
-    protected function links(string $current, string $source, string $site): bool
-    {
-        return $current === $this->localize($source, $site);
-    }
-
-    protected function entry(string $id): ?\Statamic\Contracts\Entries\Entry
+    protected function entry(string $id): ?EntryContract
     {
         return array_key_exists($id, $this->entries) ? $this->entries[$id] : $this->entries[$id] = Entry::find($id);
     }

@@ -69,10 +69,10 @@ abstract class SyncStructuresCommand extends Command
                 : Collection::all()->filter(fn (CollectionContract $collection) => $syncer->syncs($collection))->values()->all();
         }
 
+        $type = $this->navigations ? 'Navigation' : 'Collection';
         $structures = [];
         foreach (array_unique($handles) as $handle) {
             $structure = $this->navigations ? Nav::findByHandle($handle) : Collection::findByHandle($handle);
-            $type = $this->navigations ? 'Navigation' : 'Collection';
 
             if (! $structure) {
                 $this->components->error("{$type} [{$handle}] not found");
