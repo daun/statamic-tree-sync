@@ -1,23 +1,16 @@
 # Statamic Tree Sync Documentation
 
-[Back to the quick start](README.md#quick-start)
+Tree Sync keeps collection page order and nav structure in sync across Statamic sites, so you can rearrange a tree once instead of repeating the work in each site. It moves existing pages and their translations into matching positions, and copies or removes shared nav items. It does not create, delete, publish, or translate entries.
 
-## Two kinds of syncing
+You choose which collections and navigations to sync. Both are optional, and nothing syncs by default.
 
-The addon syncs **collection page layouts** and **navs**. These have different rules:
+Works with Statamic's flat files and the Eloquent driver.
 
-| | Collections | Navigations |
-| --- | --- | --- |
-| Which ones? | Opted-in ordered or nested collections available in more than one site | Opted-in navigations with a tree in more than one site |
-| What moves? | Existing pages and their translations take matching positions | Nav items take matching positions |
-| What gets added or removed in other sites? | No pages | New or deleted shared nav items |
-| What stays local? | Pages that exist only in one site | Translated titles and other local fields; items that exist only in another site's nav |
-
-Both kinds are optional and disabled by default. After you opt in, saving a selected tree in any site syncs its layout to the other sites. The last saved layout takes precedence.
-
-The addon saves changed trees through Statamic, so Statamic updates page addresses, entry order, and caches as usual. If syncing fails, the addon logs the error without failing the save you made.
+[Quick start](README.md#quick-start) · [Configuration](#configuration) · [Collections](#collections) · [Navigations](#navigations) · [Commands](#sync-existing-layouts)
 
 ## Configuration
+
+### Choose what to sync
 
 Statamic publishes `config/statamic-tree-sync.php` after installation:
 
@@ -32,77 +25,191 @@ return [
 ];
 ```
 
-For each array, uncomment `'*'` to sync all eligible collections or navigations, or enter specific handles, such as `['pages']` or `['main', 'footer']`. Leave either array empty to disable that kind of syncing. You can enable collections without navigations, navigations without collections, or both.
+Set each array independently:
 
-These settings apply to automatic syncing and the [command](#sync-existing-layouts). Passing a handle to the command does not override the configuration. Use exact handles; only the standalone `'*'` enables all handles.
+- **All eligible handles:** uncomment `'*'`.
+- **Specific handles:** enter a list, such as `['pages']` or `['main', 'footer']`.
+- **None:** leave the array empty.
 
-If you need to publish the file manually, run:
+For example, to sync the `pages` collection while keeping all navs independent:
+
+```php
+'collections' => ['pages'],
+'navigations' => [],
+```
+
+Use exact handles. Only the standalone `'*'` enables all handles; patterns such as `'footer_*'` are not supported.
+
+These settings apply to automatic syncing and the [commands](#sync-existing-layouts). Passing a handle to a command does not override the configuration: unconfigured handles are skipped.
+
+### Publish the config manually
+
+If the config file is missing, run:
 
 ```sh
 php artisan vendor:publish --tag=statamic-tree-sync-config
 ```
 
-Publishing preserves an existing config file.
+## Collections
 
-## Collections: page order and parents
+Enable collection syncing for **ordered or nested collections available in more than one site**. When you save a selected collection's tree in any site, the other sites follow its page order and parent relationships.
 
-A page and its translations count as the same page when the addon compares layouts. It follows the chain back to their shared original page, even if a translation was made from another translation.
+Only the layout changes. The addon does not create, delete, or publish entries.
 
-- Reordering pages, changing a parent, or deleting a page from a collection tree updates the order in other sites.
-- Adding a translation places it beside its original page instead of leaving it at the end of the section. This also works when you create a translation without adding it to the tree yourself.
-- Pages that exist only in another site stay under their current parent, just after the closest earlier sibling that still exists. If none remains, they become the first child.
-- If a page exists only in the site you saved, the other sites skip it. Its children move up into its place if they exist there.
+### Reordering pages and adding translations
 
-Collection syncing changes the layout of pages that already exist. It does not create, delete, or publish entries.
+Reordering pages, changing a parent, or deleting a page from a collection tree updates the order in other sites.
 
-## Navigations: nav items and fields
+A page and its translations count as the same page when comparing layouts. The addon follows their origin chain back to the shared original, even when a translation was made from another translation.
 
-A navigation is different from a collection: its items are part of the nav itself, not pages in a collection. When you add an item to a nav, the addon copies it to the other sites; when you delete a shared item and save, it removes that item there too. It matches nav items by their shared item ID, so you can link to the same page more than once. An item that belongs only to another site's nav stays in place, with the same positioning rule used for site-only collection pages. If you remove a shared parent item, its remaining children take its place.
+When you add a translation, it takes the corresponding position of its original page rather than staying at the end of the section. This also works when you create the translation without adding it to the tree yourself.
 
-When you add a site to a navigation and Statamic creates an empty tree, the addon fills it from the default site's tree, or another populated site's tree if needed. This keeps the shared item IDs. **If you built each site's navigation separately**, the items have different IDs. Syncing can then duplicate items instead of recognizing them as the same nav item. To start with shared IDs, remove the site from the navigation and add it again; review its nav before saving changes.
+### Pages that exist in only one site
 
-### Links and fields
+Sites do not need to contain exactly the same pages:
 
-If a navigation item links to an entry, the copy in each site links to that site's translation. Until a translation exists, it keeps linking to the original entry; a later sync can update the link.
+- A page found only in another site stays under its current parent, just after the closest earlier sibling that still exists. If none remains, it becomes the first child.
+- A page found only in the site you saved is skipped in the other sites. Its children move up into its place if they exist there.
 
-Fields marked `localizable` in the navigation blueprint can have different values per site. Title and URL are treated as localized too. When the addon creates a new item, it copies those values. After that, edits in the default site update another site's localized value only if it still matches the value from before the edit. Once you translate it, the addon leaves it alone. Empty values do not count as matching: an empty title can mean “use this site's entry title.”
+### Collection caveats
 
-Other navigation fields follow the saved site. Changes made from a non-default site, the command, and newly created trees copy only those non-localized fields to existing items.
+**Page addresses:** Statamic checks for unique addresses only in the tree you save directly, not in trees updated by syncing.
+
+**Maximum depth:** A site-only page moves with its parent. This can put it deeper than the collection's maximum depth.
+
+**Eloquent translations:** Through version 5.13, the Eloquent driver does not send an `EntryCreated` event for translations it creates automatically. In orderable collections, those translations may end up at the end instead of beside the original page. This matters only if the trees were already out of sync.
+
+## Navigations
+
+Enable navigation syncing for **navs with a tree in more than one site**. Saving a selected nav in any site updates its structure in the other sites.
+
+Nav items belong to the nav itself, not to a collection. Unlike collection syncing, navigation syncing can add and remove items in other sites.
+
+### Adding, moving, and removing items
+
+- New nav items are copied to the other sites.
+- Shared items take matching positions. Deleting one and saving removes it from the other sites too.
+- Items found only in another site's nav stay under their current parent, after the closest earlier sibling that remains, or first if none remains.
+- When you remove a shared parent item, its remaining children take its place.
+
+The addon matches nav items by their **shared item ID**, not by the entry they link to. You can link to the same page more than once.
+
+### Adding a site to a nav
+
+When you add a site and Statamic creates an empty nav tree, the addon fills it from the default site's tree. If needed, it uses another populated site's tree instead. Copying the tree preserves shared item IDs.
+
+### Navs built separately in each site
+
+**Review existing navs before enabling syncing.** If you built each site's nav separately, their items have different IDs. Syncing can duplicate items instead of recognizing them as the same nav item.
+
+To start with shared IDs, remove the site from the navigation and add it again. Review the resulting nav before saving changes.
+
+### Links to translated entries
+
+When a nav item links to an entry, its copy in each site links to that site's translation.
+
+If no translation exists yet, the item keeps linking to the original entry. A later sync can update the link once a translation exists.
+
+### Titles, URLs, and localized fields
+
+Fields marked `localizable` in the navigation blueprint can differ by site. Title and URL count as localized fields too.
+
+For **new items**, the addon copies these values to the other sites.
+
+For **existing items**, edits in the default site update another site's localized value only if it still matches the value from before the edit. Once you translate a value, the addon leaves it alone.
+
+Empty values do not count as matching. For example, an empty title can mean “use this site's entry title.”
+
+### Other fields
+
+Non-localized fields follow the saved site.
+
+Changes from a non-default site, command runs, and newly created trees copy only non-localized fields to existing items. They leave those items' localized values alone.
 
 ## Sync existing layouts
 
-Installing the addon does not rewrite existing trees immediately. Automatic syncing begins with the next saved tree after you opt in. To make the existing layouts match now, use the command. It takes its layout from the default site unless you choose another site. If the default site is unavailable for a particular collection or navigation, it uses that structure's first site.
+Installing the addon does not rewrite existing trees. After you opt in, automatic syncing begins with the next saved tree. Use the commands if you want to align existing layouts before editing.
+
+### Sync everything
+
+Check which trees would change:
 
 ```sh
-php please tree-sync --dry-run           # see which trees would change; save nothing
-php please tree-sync                     # sync all configured, eligible collections and navigations
-php please tree-sync pages main          # sync only these collection or navigation handles
-php please tree-sync --from=en           # use site en as the source
+php please trees:sync --dry-run
 ```
 
-You can combine the handle and `--from` options with `--dry-run`. The command skips collections or navigations that do not include the chosen source site. It reports which sites changed or were already in sync. A dry run lists trees that would change, without saving them.
+Then sync all configured, eligible collections and navigations:
+
+```sh
+php please trees:sync
+```
+
+This catch-all command always takes the layout from the default site and accepts only `--dry-run`. It takes no handles and no `--from` option; use the scoped commands below for that.
+
+The command reports which site trees changed or were already in sync. A dry run saves nothing and lists affected trees, not individual item changes.
+
+### Sync collections or navigations only
+
+Two scoped commands handle one type each:
+
+```sh
+php please trees:sync:collections
+php please trees:sync:navigations
+```
+
+Without arguments, each one syncs all configured, eligible handles of its type. Pass handles to narrow the run further:
+
+```sh
+php please trees:sync:collections pages
+php please trees:sync:navigations main footer
+```
+
+Because each command covers a single type, a handle used by both a collection and a nav is never ambiguous.
+
+### Choose a source site
+
+By default, every command takes the layout from the default site. If that site is unavailable for a collection or navigation, it uses that structure's first site.
+
+The scoped commands accept `--from` to choose a source site explicitly:
+
+```sh
+php please trees:sync:collections --from=en
+```
+
+They skip collections or navigations that do not include the chosen source site. You can combine handles, `--from`, and `--dry-run`:
+
+```sh
+php please trees:sync:navigations main --from=en --dry-run
+```
+
+## Automatic syncing and concurrent edits
+
+You can save a configured tree in any site; there is no fixed source site for automatic syncing. **The last saved layout takes precedence.**
+
+If two people edit different sites' trees at nearly the same time, the later save wins, even if it was based on an older layout. For navs, this can remove a recently added shared item from every site.
+
+The addon saves changed trees through Statamic, which updates page addresses, entry order, and caches as usual. If automatic syncing fails, the addon logs the error without failing your original save.
 
 ## Pause automatic syncing
 
-During an import, you can pause automatic syncing and run the command once afterward:
+During an import, pause automatic syncing and run `php please trees:sync` once afterward:
 
 ```php
 use Daun\StatamicTreeSync\TreeSync;
 
 TreeSync::withoutSyncing(fn () => $this->import());
+```
 
+`withoutSyncing` restores the previous setting after the callback, even if it throws.
+
+You can also toggle automatic syncing explicitly:
+
+```php
 TreeSync::disable();
 TreeSync::enable();
 ```
 
-`withoutSyncing` restores the previous setting after the callback, including if it throws. The setting resets for each request or queued job, including on long-running workers.
-
-## Things to watch for
-
-- Two people can save different sites' trees at almost the same time. The later save wins, even if it was based on an older layout. For navigations, this can remove a recently added shared item from every site.
-- Statamic checks for unique page addresses only in the tree you save directly, not in the trees updated by syncing.
-- A page that exists in only one site moves with its parent. This can put it deeper than the collection's maximum depth.
-- The Eloquent driver, through version 5.13, does not send an `EntryCreated` event for translations it creates automatically. In orderable collections, those translations may be added at the end instead of beside the original page. This matters only if the trees were already out of sync.
+The setting resets for each request or queued job, including on long-running workers.
 
 ## Development
 
