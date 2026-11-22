@@ -1,0 +1,12 @@
+includes:
+    - vendor/larastan/larastan/extension.neon
+
+parameters:
+    paths:
+        - src/
+    level: 8
+
+    ignoreErrors:
+        # Statamic's contracts declare only a fraction of the methods their implementations have
+        - message: '#^Call to an undefined method Statamic\\Contracts\\#'
+          identifier: method.notFound
