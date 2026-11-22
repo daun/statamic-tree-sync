@@ -33,12 +33,11 @@ Open `config/statamic-tree-sync.php`, which Statamic publishes after installatio
 
 ### Sync existing trees
 
-If your existing sites already have different trees, choose which one should lead before you start editing. To sync the configured collections and navigations from your default site, check which trees would change and then run. Optionally define which site to sync from initially.
+If your existing sites already have different trees, choose which one should lead before you start editing. To sync the configured collections and navigations from your default site, check which trees would change and then run.
 
 ```sh
 php please trees:sync --dry-run
 php please trees:sync
-php please trees:sync --from=en
 ```
 
 ## Documentation
