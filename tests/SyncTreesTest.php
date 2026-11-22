@@ -329,6 +329,19 @@ class SyncTreesTest extends TestCase
         $this->assertTree('en', 'en-home, en-a, en-b(en-d)');
     }
 
+    public function test_syncing_can_be_triggered_manually(): void
+    {
+        TreeSync::disable();
+        $this->saveTree('de', 'home, b(c, d), a');
+        $this->assertTree('en', 'en-home, en-a, en-b(en-d)');
+
+        $this->assertSame(['collection:pages' => ['en', 'fr']], TreeSync::sync());
+
+        $this->assertTree('en', 'en-home, en-b(en-d), en-a');
+        $this->assertTree('fr', 'fr-home, fr-b(fr-c, fr-d), fr-a');
+        $this->assertFalse(TreeSync::enabled());
+    }
+
     public function test_the_switch_resets_with_every_request_and_job(): void
     {
         TreeSync::disable();

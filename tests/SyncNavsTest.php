@@ -3,6 +3,7 @@
 namespace Daun\StatamicTreeSync\Tests;
 
 use Daun\StatamicTreeSync\NavSyncer;
+use Daun\StatamicTreeSync\TreeSync;
 use Illuminate\Support\Facades\Event;
 use PHPUnit\Framework\Attributes\DataProvider;
 use Statamic\Events\NavTreeSaved;
@@ -76,6 +77,15 @@ class SyncNavsTest extends TestCase
         $this->artisan('statamic:trees:sync:navigations', ['handles' => ['main'], '--from' => 'en'])->assertSuccessful();
 
         $this->assertTree('de', '5, 1:a, 2:b(3:b, 4:b)');
+    }
+
+    public function test_syncing_can_be_triggered_manually(): void
+    {
+        $this->setTree('de', '5, 1:a, 2:b(3:b, 4:b)');
+
+        $this->assertSame(['nav:main' => ['en']], TreeSync::sync());
+
+        $this->assertTree('en', '5, 1:en-a, 2:en-b(3:en-b, 4:en-b)');
     }
 
     public function test_unknown_nav_handles_fail_before_syncing(): void

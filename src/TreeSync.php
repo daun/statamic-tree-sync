@@ -3,6 +3,10 @@
 namespace Daun\StatamicTreeSync;
 
 use Closure;
+use Statamic\Contracts\Entries\Collection as CollectionContract;
+use Statamic\Contracts\Structures\Nav as NavContract;
+use Statamic\Facades\Collection;
+use Statamic\Facades\Nav;
 
 /**
  * Global switch for the automatic syncing of trees.
@@ -40,6 +44,33 @@ class TreeSync
         $state = static::state();
 
         return $state->enabled && ! $state->syncing;
+    }
+
+    /**
+     * Sync all configured collections and navigations from the default site.
+     * Runs even while automatic syncing is disabled.
+     *
+     * @return array<string, string[]> Handles of the changed sites, keyed by `collection:handle` or `nav:handle`
+     */
+    public static function sync(): array
+    {
+        $syncer = app(Syncer::class);
+        $navSyncer = app(NavSyncer::class);
+        $changed = [];
+
+        Collection::all()
+            ->filter(fn (CollectionContract $collection) => $syncer->syncs($collection))
+            ->each(function (CollectionContract $collection) use ($syncer, &$changed) {
+                $changed["collection:{$collection->handle()}"] = $syncer->sync($collection);
+            });
+
+        Nav::all()
+            ->filter(fn (NavContract $nav) => $navSyncer->syncs($nav))
+            ->each(function (NavContract $nav) use ($navSyncer, &$changed) {
+                $changed["nav:{$nav->handle()}"] = $navSyncer->sync($nav);
+            });
+
+        return $changed;
     }
 
     /**
