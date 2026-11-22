@@ -1,6 +1,6 @@
 {
     "name": "daun/statamic-tree-sync",
-    "description": "Keep the trees of structured collections and navigations in sync across sites",
+    "description": "Keep the trees of collections and navigations in sync across Statamic sites",
     "license": "MIT",
     "type": "statamic-addon",
     "keywords": [
@@ -64,7 +64,7 @@
         },
         "statamic": {
             "name": "Tree Sync",
-            "description": "Keep the trees of structured collections and navigations in sync across sites"
+            "description": "Keep the trees of collections and navigations in sync across sites"
         }
     },
     "scripts": {
