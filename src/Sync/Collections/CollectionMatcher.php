@@ -1,6 +1,6 @@
 <?php
 
-namespace Daun\StatamicTreeSync;
+namespace Daun\StatamicTreeSync\Sync\Collections;
 
 use stdClass;
 
@@ -10,7 +10,7 @@ use stdClass;
  * Entries are matched by their root origin. The target never loses entries: source-only ones are
  * skipped, and target-only ones stay after their nearest preceding sibling.
  */
-class TreeMatcher
+class CollectionMatcher
 {
     /**
      * @param  array<int, array<string, mixed>>  $source

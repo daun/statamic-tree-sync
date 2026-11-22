@@ -2,7 +2,7 @@
 
 namespace Daun\StatamicTreeSync\Commands;
 
-class SyncNavigationsCommand extends SyncStructuresCommand
+class SyncNavsCommand extends SyncStructuresCommand
 {
     protected $signature = 'statamic:trees:sync:navigations
         {handles?* : Handles of the navigations to sync (default: all configured ones)}
@@ -11,5 +11,5 @@ class SyncNavigationsCommand extends SyncStructuresCommand
 
     protected $description = 'Sync nav structure and shared fields across sites';
 
-    protected bool $navigations = true;
+    protected bool $navs = true;
 }

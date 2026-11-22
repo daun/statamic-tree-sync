@@ -1,8 +1,10 @@
 <?php
 
-namespace Daun\StatamicTreeSync;
+namespace Daun\StatamicTreeSync\Sync;
 
 use Closure;
+use Daun\StatamicTreeSync\Sync\Collections\CollectionSyncer;
+use Daun\StatamicTreeSync\Sync\Navs\NavSyncer;
 use Statamic\Contracts\Entries\Collection as CollectionContract;
 use Statamic\Contracts\Structures\Nav as NavContract;
 use Statamic\Facades\Collection;
@@ -52,14 +54,14 @@ class TreeSync
      */
     public static function sync(): array
     {
-        $syncer = app(Syncer::class);
+        $collectionSyncer = app(CollectionSyncer::class);
         $navSyncer = app(NavSyncer::class);
         $changed = [];
 
         Collection::all()
-            ->filter(fn (CollectionContract $collection) => $syncer->syncs($collection))
-            ->each(function (CollectionContract $collection) use ($syncer, &$changed) {
-                $changed["collection:{$collection->handle()}"] = $syncer->sync($collection);
+            ->filter(fn (CollectionContract $collection) => $collectionSyncer->syncs($collection))
+            ->each(function (CollectionContract $collection) use ($collectionSyncer, &$changed) {
+                $changed["collection:{$collection->handle()}"] = $collectionSyncer->sync($collection);
             });
 
         Nav::all()

@@ -76,7 +76,7 @@ php please trees:sync:navigations main footer --dry-run
 During batch operations like imports, pause syncing and sync once afterward. The setting resets for each request and queued job.
 
 ```php
-use Daun\StatamicTreeSync\TreeSync;
+use Daun\StatamicTreeSync\Sync\TreeSync;
 
 TreeSync::withoutSyncing(fn () => $this->import());
 TreeSync::sync();

@@ -2,10 +2,10 @@
 
 namespace Daun\StatamicTreeSync\Tests;
 
-use Daun\StatamicTreeSync\TreeMatcher;
+use Daun\StatamicTreeSync\Sync\Collections\CollectionMatcher;
 use PHPUnit\Framework\TestCase;
 
-class TreeMatcherTest extends TestCase
+class CollectionMatcherTest extends TestCase
 {
     /** Ids of the target are the source ids prefixed with `en-` */
     protected function match(array $source, array $target): array
@@ -17,7 +17,7 @@ class TreeMatcherTest extends TestCase
             }
         });
 
-        return TreeMatcher::match(TreeMatcher::normalize($source), TreeMatcher::normalize($target), $keys);
+        return CollectionMatcher::match(CollectionMatcher::normalize($source), CollectionMatcher::normalize($target), $keys);
     }
 
     protected function ids(array $branches): array
@@ -136,6 +136,6 @@ class TreeMatcherTest extends TestCase
         $source = [['entry' => 'a', 'children' => [['entry' => 'b']]]];
         $target = [['entry' => 'en-a', 'children' => [['entry' => 'en-b']]]];
 
-        $this->assertSame(TreeMatcher::normalize($target), $this->match($source, $target));
+        $this->assertSame(CollectionMatcher::normalize($target), $this->match($source, $target));
     }
 }

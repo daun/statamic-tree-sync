@@ -3,10 +3,10 @@
 namespace Daun\StatamicTreeSync\Tests\Eloquent;
 
 use Daun\StatamicTreeSync\Tests\Concerns\UsesEloquentDriver;
-use Daun\StatamicTreeSync\Tests\SyncTreesTest;
+use Daun\StatamicTreeSync\Tests\SyncCollectionsTest;
 
 /** Collections, navigations, entries and trees in the database */
-class FullSyncTreesTest extends SyncTreesTest
+class FullSyncCollectionsTest extends SyncCollectionsTest
 {
     use UsesEloquentDriver;
 

@@ -1,7 +1,8 @@
 <?php
 
-namespace Daun\StatamicTreeSync;
+namespace Daun\StatamicTreeSync\Sync\Collections;
 
+use Daun\StatamicTreeSync\Sync\TreeSync;
 use Statamic\Contracts\Entries\Collection;
 use Statamic\Eloquent\Entries\EntryQueryBuilder as EloquentEntryQueryBuilder;
 use Statamic\Facades\Entry;
@@ -9,7 +10,7 @@ use Statamic\Facades\Site;
 use Statamic\Structures\CollectionTree;
 use stdClass;
 
-class Syncer
+class CollectionSyncer
 {
     /**
      * Opted-in collections with structures in more than one site.
@@ -108,8 +109,8 @@ class Syncer
             return false;
         }
 
-        $current = TreeMatcher::normalize($target->tree());
-        $matched = TreeMatcher::match(TreeMatcher::normalize($source), $current, $keys);
+        $current = CollectionMatcher::normalize($target->tree());
+        $matched = CollectionMatcher::match(CollectionMatcher::normalize($source), $current, $keys);
 
         if ($matched === $current) {
             return false;

@@ -1,6 +1,6 @@
 <?php
 
-namespace Daun\StatamicTreeSync;
+namespace Daun\StatamicTreeSync\Sync\Navs;
 
 use Closure;
 use stdClass;

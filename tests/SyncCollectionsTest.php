@@ -3,8 +3,8 @@
 namespace Daun\StatamicTreeSync\Tests;
 
 use Daun\StatamicTreeSync\Commands\SyncTreesCommand;
-use Daun\StatamicTreeSync\Syncer;
-use Daun\StatamicTreeSync\TreeSync;
+use Daun\StatamicTreeSync\Sync\Collections\CollectionSyncer;
+use Daun\StatamicTreeSync\Sync\TreeSync;
 use Illuminate\Support\Facades\Event;
 use PHPUnit\Framework\Attributes\DataProvider;
 use Statamic\Events\CollectionTreeSaved;
@@ -14,7 +14,7 @@ use Statamic\Facades\Entry;
 use Statamic\Facades\Nav;
 use Statamic\Facades\Stache;
 
-class SyncTreesTest extends TestCase
+class SyncCollectionsTest extends TestCase
 {
     protected function setUp(): void
     {
@@ -244,19 +244,19 @@ class SyncTreesTest extends TestCase
     public function test_syncing_twice_does_not_save_unchanged_trees(): void
     {
         $this->setTree('de', 'home, b(d, c), a');
-        $syncer = app(Syncer::class);
+        $collectionSyncer = app(CollectionSyncer::class);
         $saved = [];
         Event::listen(CollectionTreeSaved::class, function ($event) use (&$saved) {
             $saved[] = $event->tree->locale();
         });
 
-        $this->assertSame(['en', 'fr'], $syncer->sync(Collection::findByHandle('pages')));
+        $this->assertSame(['en', 'fr'], $collectionSyncer->sync(Collection::findByHandle('pages')));
         $this->assertSame(['en', 'fr'], $saved);
         $this->assertTree('en', 'en-home, en-b(en-d), en-a');
         $this->assertTree('fr', 'fr-home, fr-b(fr-d, fr-c), fr-a');
         $saved = [];
 
-        $this->assertSame([], $syncer->sync(Collection::findByHandle('pages')));
+        $this->assertSame([], $collectionSyncer->sync(Collection::findByHandle('pages')));
         $this->assertSame([], $saved);
         $this->assertTree('en', 'en-home, en-b(en-d), en-a');
         $this->assertTree('fr', 'fr-home, fr-b(fr-d, fr-c), fr-a');

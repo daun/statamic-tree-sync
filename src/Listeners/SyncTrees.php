@@ -1,7 +1,10 @@
 <?php
 
-namespace Daun\StatamicTreeSync;
+namespace Daun\StatamicTreeSync\Listeners;
 
+use Daun\StatamicTreeSync\Sync\Collections\CollectionSyncer;
+use Daun\StatamicTreeSync\Sync\Navs\NavSyncer;
+use Daun\StatamicTreeSync\Sync\TreeSync;
 use Statamic\Events\CollectionTreeSaved;
 use Statamic\Events\EntryCreated;
 use Statamic\Events\NavTreeSaved;
@@ -17,9 +20,9 @@ class SyncTrees extends Subscriber
         NavTreeSaved::class => 'handleNavTreeSaved',
     ];
 
-    protected function syncer(): Syncer
+    protected function collectionSyncer(): CollectionSyncer
     {
-        return app(Syncer::class);
+        return app(CollectionSyncer::class);
     }
 
     protected function navSyncer(): NavSyncer
@@ -34,16 +37,16 @@ class SyncTrees extends Subscriber
     {
         $tree = $event->tree;
 
-        if (! TreeSync::listening() || ! $this->syncer()->syncs($tree->collection())) {
+        if (! TreeSync::listening() || ! $this->collectionSyncer()->syncs($tree->collection())) {
             return;
         }
 
         $this->safely(function () use ($tree) {
-            if ($site = $this->syncer()->localizationSource($tree)) {
-                $this->syncer()->pull($tree, $site);
+            if ($site = $this->collectionSyncer()->localizationSource($tree)) {
+                $this->collectionSyncer()->pull($tree, $site);
             } else {
                 // tree() re-appends entries being deleted: Statamic saves their tree before deleting them.
-                $this->syncer()->push($tree, branches: $tree->fileData()['tree']);
+                $this->collectionSyncer()->push($tree, branches: $tree->fileData()['tree']);
             }
         });
     }
@@ -56,13 +59,13 @@ class SyncTrees extends Subscriber
     {
         $entry = $event->entry;
 
-        if (! TreeSync::listening() || ! $entry->hasOrigin() || ! $this->syncer()->syncs($entry->collection())) {
+        if (! TreeSync::listening() || ! $entry->hasOrigin() || ! $this->collectionSyncer()->syncs($entry->collection())) {
             return;
         }
 
         $this->safely(function () use ($entry) {
             if ($tree = $entry->collection()->structure()->in($entry->locale())) {
-                $this->syncer()->pull($tree, $entry->origin()->locale());
+                $this->collectionSyncer()->pull($tree, $entry->origin()->locale());
             }
         });
     }

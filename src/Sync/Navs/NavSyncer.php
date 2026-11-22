@@ -1,7 +1,8 @@
 <?php
 
-namespace Daun\StatamicTreeSync;
+namespace Daun\StatamicTreeSync\Sync\Navs;
 
+use Daun\StatamicTreeSync\Sync\TreeSync;
 use Facades\Statamic\Structures\BranchIds;
 use Statamic\Contracts\Entries\Entry as EntryContract;
 use Statamic\Contracts\Structures\Nav;

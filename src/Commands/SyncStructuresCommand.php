@@ -2,8 +2,8 @@
 
 namespace Daun\StatamicTreeSync\Commands;
 
-use Daun\StatamicTreeSync\NavSyncer;
-use Daun\StatamicTreeSync\Syncer;
+use Daun\StatamicTreeSync\Sync\Collections\CollectionSyncer;
+use Daun\StatamicTreeSync\Sync\Navs\NavSyncer;
 use Illuminate\Console\Command;
 use Statamic\Console\RunsInPlease;
 use Statamic\Contracts\Entries\Collection as CollectionContract;
@@ -16,9 +16,9 @@ abstract class SyncStructuresCommand extends Command
 {
     use RunsInPlease;
 
-    protected bool $navigations = false;
+    protected bool $navs = false;
 
-    public function handle(Syncer $syncer, NavSyncer $navSyncer): int
+    public function handle(CollectionSyncer $collectionSyncer, NavSyncer $navSyncer): int
     {
         $from = is_string($this->option('from')) ? $this->option('from') : null;
         $dryRun = (bool) $this->option('dry-run');
@@ -29,7 +29,7 @@ abstract class SyncStructuresCommand extends Command
             return self::FAILURE;
         }
 
-        $structures = $this->structures($syncer, $navSyncer);
+        $structures = $this->structures($collectionSyncer, $navSyncer);
 
         if ($structures === null) {
             return self::FAILURE;
@@ -44,7 +44,7 @@ abstract class SyncStructuresCommand extends Command
 
             $changed = $structure instanceof NavContract
                 ? $navSyncer->sync($structure, $from, save: ! $dryRun)
-                : $syncer->sync($structure, $from, save: ! $dryRun);
+                : $collectionSyncer->sync($structure, $from, save: ! $dryRun);
 
             $this->components->twoColumnDetail(
                 $this->label($structure),
@@ -58,21 +58,21 @@ abstract class SyncStructuresCommand extends Command
     /**
      * @return array<int, CollectionContract|NavContract>|null
      */
-    protected function structures(Syncer $syncer, NavSyncer $navSyncer): ?array
+    protected function structures(CollectionSyncer $collectionSyncer, NavSyncer $navSyncer): ?array
     {
         /** @var string[] $handles */
         $handles = $this->argument('handles');
 
         if (! $handles) {
-            return $this->navigations
+            return $this->navs
                 ? Nav::all()->filter(fn (NavContract $nav) => $navSyncer->syncs($nav))->values()->all()
-                : Collection::all()->filter(fn (CollectionContract $collection) => $syncer->syncs($collection))->values()->all();
+                : Collection::all()->filter(fn (CollectionContract $collection) => $collectionSyncer->syncs($collection))->values()->all();
         }
 
-        $type = $this->navigations ? 'Navigation' : 'Collection';
+        $type = $this->navs ? 'Navigation' : 'Collection';
         $structures = [];
         foreach (array_unique($handles) as $handle) {
-            $structure = $this->navigations ? Nav::findByHandle($handle) : Collection::findByHandle($handle);
+            $structure = $this->navs ? Nav::findByHandle($handle) : Collection::findByHandle($handle);
 
             if (! $structure) {
                 $this->components->error("{$type} [{$handle}] not found");
@@ -82,7 +82,7 @@ abstract class SyncStructuresCommand extends Command
 
             $synced = $structure instanceof NavContract
                 ? $navSyncer->syncs($structure)
-                : $syncer->syncs($structure);
+                : $collectionSyncer->syncs($structure);
 
             if (! $synced) {
                 $this->components->error("{$type} [{$handle}] is not enabled for syncing or does not have a supported multisite structure");

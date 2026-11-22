@@ -2,8 +2,8 @@
 
 namespace Daun\StatamicTreeSync\Tests;
 
-use Daun\StatamicTreeSync\NavSyncer;
-use Daun\StatamicTreeSync\TreeSync;
+use Daun\StatamicTreeSync\Sync\Navs\NavSyncer;
+use Daun\StatamicTreeSync\Sync\TreeSync;
 use Illuminate\Support\Facades\Event;
 use PHPUnit\Framework\Attributes\DataProvider;
 use Statamic\Events\NavTreeSaved;
@@ -329,18 +329,18 @@ class SyncNavsTest extends TestCase
     public function test_syncing_twice_does_not_save_unchanged_trees(): void
     {
         $this->setTree('de', '5, 1:a, 2:b(3:b, 4:b), 6:c');
-        $syncer = app(NavSyncer::class);
+        $navSyncer = app(NavSyncer::class);
         $saved = [];
         Event::listen(NavTreeSaved::class, function ($event) use (&$saved) {
             $saved[] = $event->tree->locale();
         });
 
-        $this->assertSame(['en'], $syncer->sync(Nav::findByHandle('main')));
+        $this->assertSame(['en'], $navSyncer->sync(Nav::findByHandle('main')));
         $this->assertSame(['en'], $saved);
         $expected = $this->tree('en')->tree();
         $saved = [];
 
-        $this->assertSame([], $syncer->sync(Nav::findByHandle('main')));
+        $this->assertSame([], $navSyncer->sync(Nav::findByHandle('main')));
         $this->assertSame([], $saved);
         $this->assertSame($expected, $this->tree('en')->tree());
     }
