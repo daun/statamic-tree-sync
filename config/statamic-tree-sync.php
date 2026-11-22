@@ -2,12 +2,30 @@
 
 return [
 
-    // Uncomment '*' to sync all eligible collections, or list their handles.
+    /*
+    |--------------------------------------------------------------------------
+    | Collections
+    |--------------------------------------------------------------------------
+    |
+    | The collections whose trees should be synced. List their handles, or
+    | uncomment '*' to sync all eligible collections.
+    |
+    */
+
     'collections' => [
         // '*',
     ],
 
-    // Uncomment '*' to sync all eligible navigations, or list their handles.
+    /*
+    |--------------------------------------------------------------------------
+    | Navigations
+    |--------------------------------------------------------------------------
+    |
+    | The navigations whose trees should be synced. List their handles, or
+    | uncomment '*' to sync all eligible navigations.
+    |
+    */
+
     'navigations' => [
         // '*',
     ],
